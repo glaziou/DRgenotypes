@@ -34,9 +34,15 @@ save(gen, file = 'gen.Rdata')
 
 # forest plots
 load('gen.Rdata')
-sel <- gen$drug=='rif' & gen$patientGroup != 'All patients'
-forest(x=gen$se[sel], sei=gen$se.sd[sel], ci.lb=gen$se.lo[sel], ci.ub=gen$se.hi[sel],
-       slab=paste(gen$country[sel], '/', gen$patientGroup[sel]),
-       xlab=paste('Sensitivity (', gen$drug[sel][1], ')', sep=''))
 
+drugs <- unique(gen$drug)
+
+for (i in drugs){
+  sel <- gen$drug==i & gen$patientGroup != 'All patients'
+  pdf(file=paste('forestGroups_',i,'.pdf', sep=''), width=10, height=8)
+  forest(x=gen$se[sel], sei=gen$se.sd[sel], ci.lb=gen$se.lo[sel], ci.ub=gen$se.hi[sel],
+         slab=paste(gen$country[sel], '/', gen$patientGroup[sel]),
+         xlab=paste('Sensitivity (', gen$drug[sel][1], ')', sep=''), subset=order(gen$country[sel]))
+  dev.off()
+}
 
