@@ -14,9 +14,31 @@ sel <- gen$res.mut + gen$res.nomut > 0
 gen <- gen[sel]
 sel <- gen$country != 'Global'
 gen <- gen[sel]
-
 gen$res <- rowSums(cbind(gen$res.mut, gen$res.nomut))
 gen$sens <- rowSums(cbind(gen$sens.mut, gen$sens.nomut))
+
+# aggregate ZAF
+zaf <- gen[country %in% c('ZAF_GP', 'ZAF_KZN')]
+zaf2 <- zaf[,.(country='ZAF',
+              res.mut=sum(res.mut),
+              sens.mut=sum(sens.mut),
+              res.nomut=sum(res.nomut),
+              sens.nomut=sum(sens.nomut),
+              se=NA, sp=NA, ppv=NA, npv=NA,
+              sampleSize=sum(sampleSize),
+              mutations=sum(mutations),
+              res=sum(res),
+              sens=sum(sens)
+              ), by=list(patientGroup, drug)]
+zaf2 <- within(zaf2, {
+  se <- res.mut/res
+  sp <- sens.nomut/sens
+  ppv <- res.mut/(res.mut + sens.mut)
+  npv <- sens.nomut/(sens.mut + sens.nomut)
+})
+
+gen2 <- rbind(gen[country %ni% c('ZAF_GP', 'ZAF_KZN')], zaf2)
+gen <- gen2
 
 # calculate SDs and 95% CI assuming binomial errors
 out <- cii(gen$res, gen$res.mut)
@@ -39,7 +61,7 @@ save(gen, file = 'gen.Rdata')
 load('gen.Rdata')
 
 drugs <- unique(gen$drug)
-mods <- data.table(drugs=drugs, testGroup=NA, testSoviet=NA)
+mods <- data.table(drugs=drugs, testGroup=NA, testSoviet=NA, testRif=NA)
 gen$formerSoviet <- gen$country %in% c('AZE', 'BLR', 'UKR')
 
 for (i in drugs){
@@ -56,10 +78,14 @@ for (i in drugs){
   sel <- gen$drug==i & gen$patientGroup != 'All patients'
   fit.g <- rma(xi=res.mut, ni=res, mods=~patientGroup, measure='PLO', data=gen[sel], method='REML')
   fit.s <- rma(xi=res.mut, ni=res, mods=~formerSoviet, measure='PLO', data=gen[sel], method='REML')
+  if (i!= 'rif') {
+    fit.r <- rma(xi=res.mut, ni=res, mods=~factor(patientGroup=='Rif resistant'), measure='PLO', data=gen[sel], method='REML')
+    mods$testRif[mods$drugs==i] <- fit.r$QMp
+  }
   mods$testGroup[mods$drugs==i] <- fit.g$QMp
   mods$testSoviet[mods$drugs==i] <- fit.s$QMp
 }
-(mods) # patient group effect significant for kan only
+(mods) # patient group effect significant for kan only, soviet significant, rif can be ignored
 
 for (i in c('inh', 'inh2', 'rif')){
   sel <- gen$drug==i & gen$patientGroup == 'All patients'
@@ -67,13 +93,13 @@ for (i in c('inh', 'inh2', 'rif')){
   fit.ns <- rma(yi=se, sei=se.sd, measure='PLO', method='REML', data=gen[sel & formerSoviet==FALSE])
   fit.s <- rma(yi=se, sei=se.sd, measure='PLO', method='REML', data=gen[sel & formerSoviet==TRUE])
   pdf(file=paste('forestAll_',i,'.pdf', sep=''), width=10, height=8)
-  forest(fit, atransf=transf.ilogit, refline=NA,
+  forest(fit, atransf=transf.ilogit, refline=NA, addfit=FALSE,
              slab=gen$country[sel],
-             rows=c(14:12, 7:3), ylim=c(-1, 17),
+             rows=c(13:11, 6:3), ylim=c(1, 16),
              xlab=paste('Pooled Sensitivity (', gen$drug[sel][1], ')', sep=''),
              order=order(-gen$formerSoviet[sel]))
-  addpoly(fit.s, row= 10.5, atransf=transf.ilogit, mlab="Model for countries of the former Soviet Union")
-  addpoly(fit.ns, row= 1.5, atransf=transf.ilogit, mlab="Model for all other countries")
+  addpoly(fit.s, row= 9.5, atransf=transf.ilogit, mlab="Pooled, former Soviet Union")
+  addpoly(fit.ns, row= 1.5, atransf=transf.ilogit, mlab="Pooled, all other countries")
   dev.off()
 }
 
