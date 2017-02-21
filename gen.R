@@ -16,6 +16,8 @@ sel <- gen$country != 'Global'
 gen <- gen[sel]
 gen$res <- rowSums(cbind(gen$res.mut, gen$res.nomut))
 gen$sens <- rowSums(cbind(gen$sens.mut, gen$sens.nomut))
+table(gen$patientGroup)
+gen$patientGroup[gen$patientGroup=='New Patients'] <- 'New patients'
 
 # aggregate ZAF
 zaf <- gen[country %in% c('ZAF_GP', 'ZAF_KZN')]
@@ -57,11 +59,10 @@ save(gen, file = 'gen.Rdata')
 #----------------------------------------
 
 
-# forest plots
+# basic forest plots
 load('gen.Rdata')
 
 drugs <- unique(gen$drug)
-mods <- data.table(drugs=drugs, testGroup=NA, testSoviet=NA, testRif=NA)
 gen$formerSoviet <- gen$country %in% c('AZE', 'BLR', 'UKR')
 
 for (i in drugs){
@@ -74,19 +75,61 @@ for (i in drugs){
   dev.off()
 }
 
-for (i in drugs){
-  sel <- gen$drug==i & gen$patientGroup != 'All patients'
-  fit.g <- rma(xi=res.mut, ni=res, mods=~patientGroup, measure='PLO', data=gen[sel], method='REML')
-  fit.s <- rma(xi=res.mut, ni=res, mods=~formerSoviet, measure='PLO', data=gen[sel], method='REML')
-  if (i!= 'rif') {
-    fit.r <- rma(xi=res.mut, ni=res, mods=~factor(patientGroup=='Rif resistant'), measure='PLO', data=gen[sel], method='REML')
-    mods$testRif[mods$drugs==i] <- fit.r$QMp
-  }
-  mods$testGroup[mods$drugs==i] <- fit.g$QMp
-  mods$testSoviet[mods$drugs==i] <- fit.s$QMp
-}
-(mods) # patient group effect significant for kan only, soviet significant, rif can be ignored
 
+
+# effect modifiers
+mods <- data.table(drugs=drugs, testHistory=NA, testSoviet=NA, testRifRes=NA)
+for (i in drugs){
+  sel.all <- gen$drug==i & gen$patientGroup %in% c('All patients')
+  sel.hx <- gen$drug==i & gen$patientGroup %in% c('New patients','Previously treated')
+
+  fit.hx <- rma(xi=res.mut, ni=res, mods=~patientGroup, measure='PLO', data=gen[sel.hx], method='REML')
+  fit.sov <- rma(xi=res.mut, ni=res, mods=~formerSoviet, measure='PLO', data=gen[sel.all], method='REML')
+
+  if (i != 'rif') {
+    sel.rif <- gen$drug==i & gen$patientGroup %in% c('Rif resistant','Rif susceptible')
+    fit.rif <- rma(xi=res.mut, ni=res, mods=~factor(patientGroup=='Rif resistant'), measure='PLO', data=gen[sel.rif], method='REML')
+    mods$testRifRes[mods$drugs==i] <- fit.rif$QMp
+  }
+
+  mods$testHistory[mods$drugs==i] <- fit.hx$QMp
+  mods$testSoviet[mods$drugs==i] <- fit.sov$QMp
+  mods <- within(mods, {
+    testRifRes.signif <- testRifRes < 0.05
+    testSoviet.signif <- testSoviet < 0.05
+    testHistory.signif <- testHistory < 0.05
+  })
+}
+(mods)
+
+
+# for (i %in% c('inh','inh2','rif')){
+#   fit.ns <- rma(yi=se, sei=se.sd, measure='PLO', method='REML', data=gen[drug==i & patientGroup=='New patients'])
+#   fit.s <- rma(yi=se, sei=se.sd, measure='PLO', method='REML', data=gen[drug==i & patientGroup=='Previously treated'])
+#   pdf(file=paste('forestByHistory_',i,'.pdf', sep=''), width=10, height=8)
+#   forest(fit.hx, atransf=transf.ilogit, refline=NA, addfit=FALSE,
+#          slab=gen$country[sel],
+#          rows=c(18:13, 8:3), ylim=c(1, 21),
+#          xlab=paste('Pooled Sensitivity (', gen$drug[sel][1], ')', sep=''),
+#          order=order(-gen$formerSoviet[sel]))
+#   addpoly(fit.ns, row= 1.5, atransf=transf.ilogit, mlab="Pooled, New patients")
+#   addpoly(fit.s, row= 9.5, atransf=transf.ilogit, mlab="Pooled, Previously treated")
+#   dev.off()
+# }
+
+
+
+# sel <- gen$drug==i
+# forest(fit.hx, atransf=transf.ilogit, refline=NA, addfit=FALSE,
+#        slab=gen$country[sel],
+#        xlab=paste('Pooled Sensitivity (', gen$drug[sel][1], ')', sep=''),
+#        order=order(-gen$formerSoviet[sel]))
+# addpoly(fit.ns, row= 1.5, atransf=transf.ilogit, mlab="Pooled, New patients")
+# addpoly(fit.s, row= 9.5, atransf=transf.ilogit, mlab="Pooled, Previously treated")
+
+
+
+# pooled separately in former soviet countries
 for (i in c('inh', 'inh2', 'rif')){
   sel <- gen$drug==i & gen$patientGroup == 'All patients'
   fit <- rma(yi=se, sei=se.sd, measure='PLO', method='REML', data=gen[sel])
@@ -102,6 +145,26 @@ for (i in c('inh', 'inh2', 'rif')){
   addpoly(fit.ns, row= 1.5, atransf=transf.ilogit, mlab="Pooled, all other countries")
   dev.off()
 }
+
+for (i in c('ofx', 'ofx2')){
+  sel <- gen$drug==i & gen$patientGroup == 'All patients'
+  fit <- rma(yi=se, sei=se.sd, measure='PLO', method='REML', data=gen[sel])
+  fit.ns <- rma(yi=se, sei=se.sd, measure='PLO', method='REML', data=gen[sel & formerSoviet==FALSE])
+  fit.s <- rma(yi=se, sei=se.sd, measure='PLO', method='REML', data=gen[sel & formerSoviet==TRUE])
+#  pdf(file=paste('forestAll_',i,'.pdf', sep=''), width=10, height=8)
+  forest(fit, atransf=transf.ilogit, refline=NA, addfit=FALSE,
+         slab=gen$country[sel],
+         rows=c(12:10, 5:3), ylim=c(1, 16),
+         xlab=paste('Pooled Sensitivity (', gen$drug[sel][1], ')', sep=''),
+         order=order(-gen$formerSoviet[sel]))
+  addpoly(fit.s, row= 8.5, atransf=transf.ilogit, mlab="Pooled, former Soviet Union")
+  addpoly(fit.ns, row= 1.5, atransf=transf.ilogit, mlab="Pooled, all other countries")
+#  dev.off()
+}
+
+
+
+
 
 
 
