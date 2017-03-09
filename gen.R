@@ -9,7 +9,9 @@ setwd('../data/genotypes_2017/')
 #----------------------------------------
 # run this block only if dataset updated
 # read data and drop rows with no useful data
-gen <- fread('gen.csv')
+
+# gen <- fread('gen.csv')
+gen <- fread('gen070317b.csv')
 sel <- gen$res.mut + gen$res.nomut > 0
 gen <- gen[sel]
 sel <- gen$country != 'Global'
@@ -48,10 +50,11 @@ gen$se.sd <- out$se
 gen$se.lo <- out$lower95ci
 gen$se.hi <- out$upper95ci
 
-out2 <- cii(gen$sens, gen$sens.nomut)
-gen$sp.sd <- out2$se
-gen$sp.lo <- out2$lower95ci
-gen$sp.hi <- out2$upper95ci
+sel <- gen$sens>0 & !is.na(gen$sens)
+out2 <- cii(gen$sens[sel], gen$sens.nomut[sel])
+gen$sp.sd[sel] <- out2$se
+gen$sp.lo[sel] <- out2$lower95ci
+gen$sp.hi[sel] <- out2$upper95ci
 
 
 # save data
@@ -79,7 +82,7 @@ for (i in drugs){
 
 # effect modifiers
 mods <- data.table(drugs=drugs, testHistory=NA, testSoviet=NA, testRifRes=NA)
-for (i in drugs){
+for (i in setdiff(drugs, c('rif_h', 'rif_m'))){
   sel.all <- gen$drug==i & gen$patientGroup %in% c('All patients')
   sel.hx <- gen$drug==i & gen$patientGroup %in% c('New patients','Previously treated')
 
@@ -130,7 +133,7 @@ for (i in drugs){
 
 
 # pooled separately in former soviet countries
-for (i in c('inh', 'inh2', 'rif')){
+for (i in c('inh_h', 'inh2_h', 'rif_h', 'inh_m', 'inh2_m', 'rif_m')){
   sel <- gen$drug==i & gen$patientGroup == 'All patients'
   fit <- rma(yi=se, sei=se.sd, measure='PLO', method='REML', data=gen[sel])
   fit.ns <- rma(yi=se, sei=se.sd, measure='PLO', method='REML', data=gen[sel & formerSoviet==FALSE])
@@ -147,7 +150,7 @@ for (i in c('inh', 'inh2', 'rif')){
 }
 
 for (i in c('ofx', 'ofx2')){
-  sel <- gen$drug==i & gen$patientGroup == 'All patients'
+  sel <- gen$drug==i & gen$patientGroup == 'All patients' & gen$country %ni% c('PHL')
   fit <- rma(yi=se, sei=se.sd, measure='PLO', method='REML', data=gen[sel])
   fit.ns <- rma(yi=se, sei=se.sd, measure='PLO', method='REML', data=gen[sel & formerSoviet==FALSE])
   fit.s <- rma(yi=se, sei=se.sd, measure='PLO', method='REML', data=gen[sel & formerSoviet==TRUE])
