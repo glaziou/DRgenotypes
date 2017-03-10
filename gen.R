@@ -82,14 +82,14 @@ for (i in drugs){
 
 # effect modifiers
 mods <- data.table(drugs=drugs, testHistory=NA, testSoviet=NA, testRifRes=NA)
-for (i in setdiff(drugs, c('rif_h', 'rif_m'))){
+for (i in drugs){
   sel.all <- gen$drug==i & gen$patientGroup %in% c('All patients')
   sel.hx <- gen$drug==i & gen$patientGroup %in% c('New patients','Previously treated')
 
   fit.hx <- rma(xi=res.mut, ni=res, mods=~patientGroup, measure='PLO', data=gen[sel.hx], method='REML')
   fit.sov <- rma(xi=res.mut, ni=res, mods=~formerSoviet, measure='PLO', data=gen[sel.all], method='REML')
 
-  if (i != 'rif') {
+  if (i %ni% c('rif_h','rif_m')) {
     sel.rif <- gen$drug==i & gen$patientGroup %in% c('Rif resistant','Rif susceptible')
     fit.rif <- rma(xi=res.mut, ni=res, mods=~factor(patientGroup=='Rif resistant'), measure='PLO', data=gen[sel.rif], method='REML')
     mods$testRifRes[mods$drugs==i] <- fit.rif$QMp
@@ -166,7 +166,63 @@ for (i in c('ofx', 'ofx2')){
 }
 
 
+# pooled separately by rif res
+for (i in c('inh_h', 'inh2_h', 'inh_m', 'inh2_m', 'ofx','ofx2')){
+  selrr <- gen$drug==i & gen$patientGroup == 'Rif resistant'
+  selrs <- gen$drug==i & gen$patientGroup == 'Rif susceptible'
+  fit.rr <- rma(yi=se, sei=se.sd, measure='PLO', method='REML', data=gen[selrr])
+  fit.rs <- rma(yi=se, sei=se.sd, measure='PLO', method='REML', data=gen[selrs])
+  pdf(file=paste('forestRifRes_',i,'.pdf', sep=''), width=10, height=8)
+  forest(fit.rr, atransf=transf.ilogit, refline=NA, addfit=TRUE,
+         slab=gen$country[selrr],
+         xlab=paste('Pooled Sensitivity, Rif Resistant (', gen$drug[selrr][1], ')', sep=''),
+         order=order(-gen$se[selrr]))
+  dev.off()
+  pdf(file=paste('forestRifSus_',i,'.pdf', sep=''), width=10, height=8)
+  forest(fit.rs, atransf=transf.ilogit, refline=NA, addfit=TRUE,
+         slab=gen$country[selrs],
+         xlab=paste('Pooled Sensitivity, Rif Susceptible (', gen$drug[selrs][1], ')', sep=''),
+         order=order(-gen$se[selrs]))
+  dev.off()
+}
 
+for (i in setdiff(drugs, c('rif_h','rif_m','kan','kan2'))){
+  selrr <- gen$drug==i & gen$patientGroup == 'Rif resistant'
+  selrs <- gen$drug==i & gen$patientGroup == 'Rif susceptible'
+  fit.rr <- rma(yi=se, sei=se.sd, measure='PLO', method='REML', data=gen[selrr])
+  fit.rs <- rma(yi=se, sei=se.sd, measure='PLO', method='REML', data=gen[selrs])
+  pdf(file=paste('forestRifRes_',i,'.pdf', sep=''), width=10, height=8)
+  forest(fit.rr, atransf=transf.ilogit, refline=NA, addfit=TRUE,
+         slab=gen$country[selrr],
+         xlab=paste('Pooled Sensitivity, Rif Resistant (', gen$drug[selrr][1], ')', sep=''),
+         order=order(-gen$se[selrr]))
+  dev.off()
+  pdf(file=paste('forestRifSus_',i,'.pdf', sep=''), width=10, height=8)
+  forest(fit.rs, atransf=transf.ilogit, refline=NA, addfit=TRUE,
+         slab=gen$country[selrs],
+         xlab=paste('Pooled Sensitivity, Rif Susceptible (', gen$drug[selrs][1], ')', sep=''),
+         order=order(-gen$se[selrs]))
+  dev.off()
+}
+
+for (i in c('kan','kan2')){
+  selrr <- gen$drug==i & gen$patientGroup == 'Rif resistant' & gen$se>0
+  selrs <- gen$drug==i & gen$patientGroup == 'Rif susceptible' & gen$se>0
+  fit.rr <- rma(yi=se, sei=se.sd, measure='PLO', method='REML', data=gen[selrr])
+  fit.rs <- rma(yi=se, sei=se.sd, measure='PLO', method='REML', data=gen[selrs])
+  pdf(file=paste('forestRifRes_',i,'.pdf', sep=''), width=10, height=8)
+  forest(fit.rr, atransf=transf.ilogit, refline=NA, addfit=TRUE,
+         slab=gen$country[selrr],
+         xlab=paste('Pooled Sensitivity, Rif Resistant (', gen$drug[selrr][1], ')', sep=''),
+         order=order(-gen$se[selrr]))
+  dev.off()
+  pdf(file=paste('forestRifSus_',i,'.pdf', sep=''), width=10, height=8)
+  forest(fit.rs, atransf=transf.ilogit, refline=NA, addfit=TRUE,
+         slab=gen$country[selrs],
+         xlab=paste('Pooled Sensitivity, Rif Susceptible (', gen$drug[selrs][1], ')', sep=''),
+         order=order(-gen$se[selrs]))
+  dev.off()
+}
 
 
 
