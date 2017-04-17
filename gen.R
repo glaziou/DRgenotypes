@@ -12,7 +12,8 @@ setwd('../data/genotypes_2017/')
 
 # gen <- fread('gen.csv')
 # gen <- fread('gen070317b.csv')
-gen <- fread('gen140317.csv')
+# gen <- fread('gen140317.csv')
+gen <- fread('gen130417.csv')
 sel <- gen$res.mut + gen$res.nomut > 0
 gen <- gen[sel]
 sel <- gen$country != 'Global'
@@ -115,7 +116,7 @@ for (i in drugs){
 }
 (mods)
 
-
+write.csv(mods, file='mods.csv', row.names=F)
 
 # pooled separately in former soviet countries
 # for (i in c('inh_h', 'inh2_h', 'rif_h', 'inh_m', 'inh2_m', 'rif_m')){
@@ -152,7 +153,7 @@ for (i in drugs){
 
 
 # pooled separately by rif res
-for (i in c('inh', 'inh2', 'inh', 'inh2', 'ofx','ofx2')){
+for (i in c('inh2', 'ofx2')){
   selrr <- gen$drug==i & gen$patientGroup == 'Rif resistant'
   selrs <- gen$drug==i & gen$patientGroup == 'Rif susceptible'
   fit.rr <- rma(xi=res.mut, mi=res.nomut, measure='PLO', method='REML', data=gen[selrr])
@@ -197,7 +198,7 @@ for (i in setdiff(drugs, c('rif'))){
 
 
 # store pooled results for non-injectables
-idrugs <- c('kan','kan2','amk','cap')
+idrugs <- c('kan2','amk','cap')
 nidrugs <- setdiff(drugs, idrugs)
 res <- data.table(drug=drugs, se=NA, se.lo=NA, se.hi=NA, se.sd=NA, sp=NA, sp.lo=NA, sp.hi=NA, sp.sd=NA)
 
@@ -222,7 +223,7 @@ for (i in idrugs){
   sel <- gen$drug==i & gen$patientGroup == 'Rif resistant' # & gen$se>0 & gen$se<1
   sel2 <- res$drug==i
 
-  sefit <- rma(xi=res.mut, mi=res.nomut, measure='PLO', data=gen[sel3], method='REML')
+  sefit <- rma(xi=res.mut, mi=res.nomut, measure='PLO', data=gen[sel], method='REML')
   spfit <- rma(xi=sens.nomut, mi=sens.mut, measure='PLO', data=gen[sel], method='REML')
 
   res$se[sel2] <- invlogit(predict(sefit)$pred)
@@ -296,7 +297,8 @@ for (i in 1:dim(gen2)[1]){
 
 
 # plot posterior vs actual prevalence
-druglab <- c('OFX','OFX (2)', 'MFX', 'MFX (2)', 'PZA', 'PZA (2)', 'RIF', 'INH', 'INH (2)', 'KAN', 'KAN (2)', 'AMK', 'CAP')
+# druglab <- c('OFX','OFX (2)', 'MFX', 'MFX (2)', 'PZA', 'PZA (2)', 'RIF', 'INH', 'INH (2)', 'KAN', 'KAN (2)', 'AMK', 'CAP')
+druglab <- c('OFX (2)', 'MFX', 'MFX (2)', 'PZA', 'PZA (2)', 'RIF', 'INH (2)', 'KAN (2)', 'AMK', 'CAP')
 
 for (i in 1:length(drugs)){
   sel <- gen2$drug == drugs[i]
@@ -306,7 +308,7 @@ for (i in 1:length(drugs)){
     geom_point(aes(post, country), shape=I('|'), size=I(5), colour=I('red')) +
     geom_segment(aes(x=prevRes.lo, xend=prevRes.hi, y=country, yend=country), colour=I('lightblue'), size=I(3)) +
     geom_segment(aes(x=post.lo, xend=post.hi, y=country, yend=country), colour=I('red'), size=I(1)) +
-    geom_point(aes(tpos/n, country), shape=I(4)) +
+#    geom_point(aes(tpos/n, country), shape=I(4)) +
     xlab(paste('Prevalence of ', druglab[i], ' resistance (blue=true, red=test positive, adjusted)', sep='')) +
     ylab('') + theme_bw(base_size = 18)
   print(p)
@@ -325,7 +327,7 @@ load('gen2.Rdata')
 load('gen.Rdata')
 
 drugs <- unique(gen$drug)
-idrugs <- c('kan','kan2','amk','cap')
+idrugs <- c('kan2','amk','cap')
 nidrugs <- setdiff(drugs, idrugs)
 
 gen$res2 <- gen$mutations + gen$res.nomut
@@ -372,7 +374,8 @@ for (i in 1:dim(gen3)[1]){
 gen3[,.(country,drug,prevRes,prevRes2,se,sp,post,post2)]
 
 # plot posterior vs actual prevalence
-druglab <- c('OFX','OFX (2)', 'MFX', 'MFX (2)', 'PZA', 'PZA (2)', 'RIF', 'INH', 'INH (2)', 'KAN', 'KAN (2)', 'AMK', 'CAP')
+# druglab <- c('OFX','OFX (2)', 'MFX', 'MFX (2)', 'PZA', 'PZA (2)', 'RIF', 'INH', 'INH (2)', 'KAN', 'KAN (2)', 'AMK', 'CAP')
+druglab <- c('OFX (2)', 'MFX', 'MFX (2)', 'PZA', 'PZA (2)', 'RIF', 'INH (2)', 'KAN (2)', 'AMK', 'CAP')
 
 for (i in 1:length(drugs)){
   sel <- gen3$drug == drugs[i]
@@ -382,7 +385,8 @@ for (i in 1:length(drugs)){
     geom_point(aes(post2, country), shape=I('|'), size=I(5), colour=I('red')) +
     geom_segment(aes(x=prevRes2.lo, xend=prevRes2.hi, y=country, yend=country), colour=I('lightblue'), size=I(3)) +
     geom_segment(aes(x=post2.lo, xend=post2.hi, y=country, yend=country), colour=I('red'), size=I(1)) +
-    geom_point(aes(tpos/n, country), shape=I(4)) +
+#    geom_point(aes(tpos/n, country), shape=I(4)) +
+    expand_limits(x=c(0,0.6)) +
     xlab(paste('Prevalence of ', druglab[i], ' resistance (blue=true (including pheno- geno+), red=test positive, adjusted)', sep='')) +
     ylab('') + theme_bw(base_size = 18)
   print(p)
@@ -488,13 +492,17 @@ for (i in 1:length(rdrugs)){
     geom_point(aes(post2, country), shape=I('|'), size=I(5), colour=I('red')) +
     geom_segment(aes(x=prevRes2.lo, xend=prevRes2.hi, y=country, yend=country), colour=I('lightblue'), size=I(3)) +
     geom_segment(aes(x=post2.lo, xend=post2.hi, y=country, yend=country), colour=I('red'), size=I(1)) +
-    geom_point(aes(tpos/n, country), shape=I(4)) +
+#    geom_point(aes(tpos/n, country), shape=I(4)) +
     xlab(paste('Prevalence of ', druglab2[i], ' resistance (blue=true, red=test positive, adjusted)', sep='')) +
     ylab('') + theme_bw(base_size = 18) +
-    facet_wrap(~patientGroup, scales='free_x')
+#    expand_limits(x=c(0,1)) +
+#    facet_wrap(~patientGroup, scales='free_x')
+    facet_wrap(~patientGroup)
   print(p)
   dev.off()
 }
+
+write.csv(res, file='resByRR.csv', row.names=F)
 
 save(gen4, file='gen4.Rdata')
 
