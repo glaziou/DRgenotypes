@@ -13,7 +13,8 @@ setwd('../data/genotypes_2017/')
 # gen <- fread('gen.csv')
 # gen <- fread('gen070317b.csv')
 # gen <- fread('gen140317.csv')
-gen <- fread('gen130417.csv')
+# gen <- fread('gen130417.csv')
+gen <- fread('gen140917.csv')
 sel <- gen$res.mut + gen$res.nomut > 0
 gen <- gen[sel]
 sel <- gen$country != 'Global'
@@ -61,6 +62,12 @@ gen$sp.hi[sel] <- out2$upper95ci
 sel <- gen$se.sd==0
 gen$se.sd[sel] <- (gen$se.hi[sel] - gen$se.lo[sel]) / 4
 
+# get country names
+load('../../gtb2017/Rdata/cty.Rdata')
+setnames(gen, 'country', 'iso3')
+setkey(gen, iso3)
+gen <- merge(gen, cty[,.(iso3,country)], by='iso3', all.x=T, all.y=F)
+
 # save data
 save(gen, file = 'gen.Rdata')
 #----------------------------------------
@@ -72,7 +79,7 @@ save(gen, file = 'gen.Rdata')
 load('gen.Rdata')
 
 drugs <- unique(gen$drug)
-gen$formerSoviet <- gen$country %in% c('AZE', 'BLR', 'UKR')
+gen$formerSoviet <- gen$iso3 %in% c('AZE', 'BLR', 'UKR')
 
 
 for (i in drugs){
@@ -295,28 +302,34 @@ for (i in 1:dim(gen2)[1]){
   gen2$post.sd[i] <- omcmc$statistics[2]
 }
 
+save(gen2, file='gen2.Rdata')
+
 
 # plot posterior vs actual prevalence
 # druglab <- c('OFX','OFX (2)', 'MFX', 'MFX (2)', 'PZA', 'PZA (2)', 'RIF', 'INH', 'INH (2)', 'KAN', 'KAN (2)', 'AMK', 'CAP')
 druglab <- c('OFX (2)', 'MFX', 'MFX (2)', 'PZA', 'PZA (2)', 'RIF', 'INH (2)', 'KAN (2)', 'AMK', 'CAP')
 
+load('gen2.Rdata')
+gen2$country <- droplevels(gen2$country)
+levels(gen2$country) <- rev(levels(gen2$country))
+
 for (i in 1:length(drugs)){
   sel <- gen2$drug == drugs[i]
   pdf(file=paste('post_', drugs[i],'.pdf', sep=''), width=10, height=8)
   p <-  ggplot(data=gen2[sel]) +
-    geom_point(aes(prevRes, country), shape=I('|'), size=I(5), colour=I('lightblue')) +
-    geom_point(aes(post, country), shape=I('|'), size=I(5), colour=I('red')) +
-    geom_segment(aes(x=prevRes.lo, xend=prevRes.hi, y=country, yend=country), colour=I('lightblue'), size=I(3)) +
-    geom_segment(aes(x=post.lo, xend=post.hi, y=country, yend=country), colour=I('red'), size=I(1)) +
+    geom_point(aes(prevRes, country), shape=I('|'), size=I(8), colour=I('lightblue')) +
+    geom_segment(aes(x=prevRes.lo, xend=prevRes.hi, y=country, yend=country), colour=I('lightblue'), size=I(6)) +
+    geom_point(aes(post, country), shape=I('|'), size=I(6), colour=I('red')) +
+    geom_segment(aes(x=post.lo, xend=post.hi, y=country, yend=country), colour=I('red'), size=I(3)) +
 #    geom_point(aes(tpos/n, country), shape=I(4)) +
     xlab(paste('Prevalence of ', druglab[i], ' resistance (blue=true, red=test positive, adjusted)', sep='')) +
-    ylab('') + theme_bw(base_size = 18)
+    ylab('') + theme_bw(base_size = 18) +
+    scale_x_continuous(labels=scales::percent)
   print(p)
   dev.off()
 }
 
 
-save(gen2, file='gen2.Rdata')
 
 
 
@@ -373,32 +386,39 @@ for (i in 1:dim(gen3)[1]){
 
 gen3[,.(country,drug,prevRes,prevRes2,se,sp,post,post2)]
 
+save(gen3, file='gen3.Rdata')
+
+
 # plot posterior vs actual prevalence
 # druglab <- c('OFX','OFX (2)', 'MFX', 'MFX (2)', 'PZA', 'PZA (2)', 'RIF', 'INH', 'INH (2)', 'KAN', 'KAN (2)', 'AMK', 'CAP')
 druglab <- c('OFX (2)', 'MFX', 'MFX (2)', 'PZA', 'PZA (2)', 'RIF', 'INH (2)', 'KAN (2)', 'AMK', 'CAP')
+
+load('gen3.Rdata')
+gen3$country <- droplevels(gen3$country)
+levels(gen3$country) <- rev(levels(gen3$country))
 
 for (i in 1:length(drugs)){
   sel <- gen3$drug == drugs[i]
   pdf(file=paste('post_sp1_', drugs[i],'.pdf', sep=''), width=10, height=8)
   p <-  ggplot(data=gen3[sel]) +
-    geom_point(aes(prevRes2, country), shape=I('|'), size=I(5), colour=I('lightblue')) +
-    geom_point(aes(post2, country), shape=I('|'), size=I(5), colour=I('red')) +
-    geom_segment(aes(x=prevRes2.lo, xend=prevRes2.hi, y=country, yend=country), colour=I('lightblue'), size=I(3)) +
-    geom_segment(aes(x=post2.lo, xend=post2.hi, y=country, yend=country), colour=I('red'), size=I(1)) +
+    geom_point(aes(prevRes2, country), shape=I('|'), size=I(8), colour=I('lightblue')) +
+    geom_segment(aes(x=prevRes2.lo, xend=prevRes2.hi, y=country, yend=country), colour=I('lightblue'), size=I(6)) +
+    geom_point(aes(post2, country), shape=I('|'), size=I(6), colour=I('red')) +
+    geom_segment(aes(x=post2.lo, xend=post2.hi, y=country, yend=country), colour=I('red'), size=I(3)) +
 #    geom_point(aes(tpos/n, country), shape=I(4)) +
     expand_limits(x=c(0,0.6)) +
     xlab(paste('Prevalence of ', druglab[i], ' resistance (blue=true (including pheno- geno+), red=test positive, adjusted)', sep='')) +
-    ylab('') + theme_bw(base_size = 18)
+    ylab('') + theme_bw(base_size = 18) +
+    scale_x_continuous(labels=scales::percent)
   print(p)
   dev.off()
 }
 
-save(gen3, file='gen3.Rdata')
 
 
 
 # by rif status in selected drugs
-rdrugs <- c('inh2','ofx2', 'mfx2', 'pza')
+rdrugs <- c('inh2','ofx2', 'mfx2', 'pza', 'pza_waynes','mfx')
 
 resRS <- data.table(drug=rdrugs, RR=0, se=NA, se.lo=NA, se.hi=NA, se.sd=NA)
 resRR <- data.table(drug=rdrugs, RR=1, se=NA, se.lo=NA, se.hi=NA, se.sd=NA)
@@ -481,22 +501,24 @@ for (i in 1:dim(gen4)[1]){
 }
 
 gen4[,.(country,drug,prevRes,prevRes2,se,post2)]
+save(gen4, file='gen4.Rdata')
 
-druglab2 <- c('INH (2)', 'OFX (2)', 'MFX (2)', 'PZA')
+druglab2 <- c('INH (2)', 'OFX (2)', 'MFX (2)', 'PZA', 'PZA (Waynes)', 'MFX')
+load('gen4.Rdata')
+gen4$country <- droplevels(gen4$country)
+levels(gen4$country) <- rev(levels(gen4$country))
 
 for (i in 1:length(rdrugs)){
   sel <- gen4$drug == rdrugs[i]
   pdf(file=paste('post_sp1_byRif_', rdrugs[i],'.pdf', sep=''), width=10, height=8)
   p <-  ggplot(data=gen4[sel]) +
-    geom_point(aes(prevRes2, country), shape=I('|'), size=I(5), colour=I('lightblue')) +
-    geom_point(aes(post2, country), shape=I('|'), size=I(5), colour=I('red')) +
-    geom_segment(aes(x=prevRes2.lo, xend=prevRes2.hi, y=country, yend=country), colour=I('lightblue'), size=I(3)) +
-    geom_segment(aes(x=post2.lo, xend=post2.hi, y=country, yend=country), colour=I('red'), size=I(1)) +
-#    geom_point(aes(tpos/n, country), shape=I(4)) +
+    geom_point(aes(prevRes2, country), shape=I('|'), size=I(8), colour=I('lightblue')) +
+    geom_segment(aes(x=prevRes2.lo, xend=prevRes2.hi, y=country, yend=country), colour=I('lightblue'), size=I(6)) +
+    geom_point(aes(post2, country), shape=I('|'), size=I(6), colour=I('red')) +
+    geom_segment(aes(x=post2.lo, xend=post2.hi, y=country, yend=country), colour=I('red'), size=I(3)) +
     xlab(paste('Prevalence of ', druglab2[i], ' resistance (blue=true, red=test positive, adjusted)', sep='')) +
     ylab('') + theme_bw(base_size = 18) +
-#    expand_limits(x=c(0,1)) +
-#    facet_wrap(~patientGroup, scales='free_x')
+    scale_x_continuous(labels=scales::percent) +
     facet_wrap(~patientGroup)
   print(p)
   dev.off()
@@ -504,7 +526,7 @@ for (i in 1:length(rdrugs)){
 
 write.csv(res, file='resByRR.csv', row.names=F)
 
-save(gen4, file='gen4.Rdata')
+
 
 
 
