@@ -79,10 +79,13 @@ save(gen, file = 'gen.Rdata')
 load('gen.Rdata')
 
 drugs <- unique(gen$drug)
+idrugs <- c('kan2','amk','cap')
+nidrugs <- setdiff(drugs, idrugs)
+
 gen$formerSoviet <- gen$iso3 %in% c('AZE', 'BLR', 'UKR')
 
 
-for (i in drugs){
+for (i in nidrugs){
   sel <- gen$drug==i & gen$patientGroup == 'All patients' # & gen$se>0 & gen$se<1
   fit <- rma(xi=res.mut, mi=res.nomut, measure='PLO', data=gen[sel], method='REML')
   pdf(file=paste('forestAll_',i,'.pdf', sep=''), width=10, height=8)
@@ -242,8 +245,8 @@ for (i in idrugs){
   res$sp.hi[sel2] <- invlogit(predict(spfit)$ci.ub)
 }
 
-res$se.sd <- (res$se.hi - res$se.lo)/4
-res$sp.sd <- (res$sp.hi - res$sp.lo)/4
+res$se.sd <- (res$se.hi - res$se.lo)/3.92
+res$sp.sd <- (res$sp.hi - res$sp.lo)/3.92
 
 
 # actual prevalence
@@ -311,7 +314,7 @@ druglab <- c('OFX (2)', 'MFX', 'MFX (2)', 'PZA', 'PZA (2)', 'RIF', 'INH (2)', 'K
 
 load('gen2.Rdata')
 gen2$country <- droplevels(gen2$country)
-levels(gen2$country) <- rev(levels(gen2$country))
+gen2$country <- with(gen2, factor(country, levels = rev(sort(unique(country)))))
 
 for (i in 1:length(drugs)){
   sel <- gen2$drug == drugs[i]
@@ -338,10 +341,6 @@ for (i in 1:length(drugs)){
 library(rjags)
 load('gen2.Rdata')
 load('gen.Rdata')
-
-drugs <- unique(gen$drug)
-idrugs <- c('kan2','amk','cap')
-nidrugs <- setdiff(drugs, idrugs)
 
 gen$res2 <- gen$mutations + gen$res.nomut
 gen$prevRes2 <- gen$res2/gen$sampleSize
@@ -395,7 +394,7 @@ druglab <- c('OFX (2)', 'MFX', 'MFX (2)', 'PZA', 'PZA (2)', 'RIF', 'INH (2)', 'K
 
 load('gen3.Rdata')
 gen3$country <- droplevels(gen3$country)
-levels(gen3$country) <- rev(levels(gen3$country))
+gen3$country <- with(gen3, factor(country, levels = rev(sort(unique(country)))))
 
 for (i in 1:length(drugs)){
   sel <- gen3$drug == drugs[i]
@@ -506,7 +505,7 @@ save(gen4, file='gen4.Rdata')
 druglab2 <- c('INH (2)', 'OFX (2)', 'MFX (2)', 'PZA', 'PZA (Waynes)', 'MFX')
 load('gen4.Rdata')
 gen4$country <- droplevels(gen4$country)
-levels(gen4$country) <- rev(levels(gen4$country))
+gen4$country <- with(gen4, factor(country, levels = rev(sort(unique(country)))))
 
 for (i in 1:length(rdrugs)){
   sel <- gen4$drug == rdrugs[i]
@@ -525,6 +524,8 @@ for (i in 1:length(rdrugs)){
 }
 
 write.csv(res, file='resByRR.csv', row.names=F)
+
+
 
 
 
