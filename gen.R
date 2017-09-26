@@ -86,7 +86,7 @@ gen$formerSoviet <- gen$iso3 %in% c('AZE', 'BLR', 'UKR')
 
 
 for (i in nidrugs){
-  sel <- gen$drug==i & gen$patientGroup == 'All patients' # & gen$se>0 & gen$se<1
+  sel <- gen$drug==i & ((gen$patientGroup == 'All patients' & gen$iso3 !='UKR') | (gen$patientGroup == 'Rif resistant' & gen$iso3 =='UKR'))
   fit <- rma(xi=res.mut, mi=res.nomut, measure='PLO', data=gen[sel], method='REML')
   pdf(file=paste('forestAll_',i,'.pdf', sep=''), width=10, height=8)
   forest(fit, atransf=transf.ilogit,
@@ -327,6 +327,7 @@ for (i in 1:length(drugs)){
 #    geom_point(aes(tpos/n, country), shape=I(4)) +
     xlab(paste('Prevalence of ', druglab[i], ' resistance (blue=true, red=test positive, adjusted)', sep='')) +
     ylab('') + theme_bw(base_size = 18) +
+    expand_limits(x=c(0,1)) +
     scale_x_continuous(labels=scales::percent)
   print(p)
   dev.off()
@@ -406,14 +407,72 @@ for (i in 1:length(drugs)){
     geom_segment(aes(x=post2.lo, xend=post2.hi, y=country, yend=country), colour=I('red'), size=I(3)) +
 #    geom_point(aes(tpos/n, country), shape=I(4)) +
     expand_limits(x=c(0,0.6)) +
-    xlab(paste('Prevalence of ', druglab[i], ' resistance (blue=true (including pheno- geno+), red=test positive, adjusted)', sep='')) +
+    xlab(paste('Prevalence of ', druglab[i], ' resistance (blue=true, red=test positive, adjusted)', sep='')) +
     ylab('') + theme_bw(base_size = 18) +
+    expand_limits(x=c(0,1)) +
     scale_x_continuous(labels=scales::percent)
   print(p)
   dev.off()
 }
 
 
+p1 <-  ggplot(data=gen3[gen3$drug=='ofx2']) +
+  geom_point(aes(prevRes2, country), shape=I('|'), size=I(8), colour=I('lightblue')) +
+  geom_segment(aes(x=prevRes2.lo, xend=prevRes2.hi, y=country, yend=country), colour=I('lightblue'), size=I(6)) +
+  geom_point(aes(post2, country), shape=I('|'), size=I(6), colour=I('red')) +
+  geom_segment(aes(x=post2.lo, xend=post2.hi, y=country, yend=country), colour=I('red'), size=I(3)) +
+  expand_limits(x=c(0,0.6)) +
+  xlab('Prevalence of OFX (2) resistance (blue=true, red=test positive, adjusted)') +
+  ylab('') + theme_bw(base_size = 18) +
+  expand_limits(x=c(0,1)) +
+  scale_x_continuous(labels=scales::percent)
+p2 <-  ggplot(data=gen3[gen3$drug=='mfx']) +
+  geom_point(aes(prevRes2, country), shape=I('|'), size=I(8), colour=I('lightblue')) +
+  geom_segment(aes(x=prevRes2.lo, xend=prevRes2.hi, y=country, yend=country), colour=I('lightblue'), size=I(6)) +
+  geom_point(aes(post2, country), shape=I('|'), size=I(6), colour=I('red')) +
+  geom_segment(aes(x=post2.lo, xend=post2.hi, y=country, yend=country), colour=I('red'), size=I(3)) +
+  expand_limits(x=c(0,0.6)) +
+  xlab('Prevalence of MFX resistance (blue=true, red=test positive, adjusted)') +
+  ylab('') + theme_bw(base_size = 18) +
+  expand_limits(x=c(0,1)) +
+  scale_x_continuous(labels=scales::percent)
+pdf(file='post_sp1_ofx2_mfx.pdf', width=10, height=8)
+multiplot(p1, p2, cols=1)
+dev.off()
+
+p1 <-  ggplot(data=gen3[gen3$drug=='amk']) +
+  geom_point(aes(prevRes2, country), shape=I('|'), size=I(8), colour=I('lightblue')) +
+  geom_segment(aes(x=prevRes2.lo, xend=prevRes2.hi, y=country, yend=country), colour=I('lightblue'), size=I(6)) +
+  geom_point(aes(post2, country), shape=I('|'), size=I(6), colour=I('red')) +
+  geom_segment(aes(x=post2.lo, xend=post2.hi, y=country, yend=country), colour=I('red'), size=I(3)) +
+  expand_limits(x=c(0,0.6)) +
+  xlab('Prevalence of AMK resistance (blue=true, red=test positive, adjusted)') +
+  ylab('') + theme_bw(base_size = 18) +
+  expand_limits(x=c(0,1)) +
+  scale_x_continuous(labels=scales::percent)
+p2 <-  ggplot(data=gen3[gen3$drug=='kan2']) +
+  geom_point(aes(prevRes2, country), shape=I('|'), size=I(8), colour=I('lightblue')) +
+  geom_segment(aes(x=prevRes2.lo, xend=prevRes2.hi, y=country, yend=country), colour=I('lightblue'), size=I(6)) +
+  geom_point(aes(post2, country), shape=I('|'), size=I(6), colour=I('red')) +
+  geom_segment(aes(x=post2.lo, xend=post2.hi, y=country, yend=country), colour=I('red'), size=I(3)) +
+  expand_limits(x=c(0,0.6)) +
+  xlab('Prevalence of KAN (2) resistance (blue=true, red=test positive, adjusted)') +
+  ylab('') + theme_bw(base_size = 18) +
+  expand_limits(x=c(0,1)) +
+  scale_x_continuous(labels=scales::percent)
+p3 <-  ggplot(data=gen3[gen3$drug=='cap']) +
+  geom_point(aes(prevRes2, country), shape=I('|'), size=I(8), colour=I('lightblue')) +
+  geom_segment(aes(x=prevRes2.lo, xend=prevRes2.hi, y=country, yend=country), colour=I('lightblue'), size=I(6)) +
+  geom_point(aes(post2, country), shape=I('|'), size=I(6), colour=I('red')) +
+  geom_segment(aes(x=post2.lo, xend=post2.hi, y=country, yend=country), colour=I('red'), size=I(3)) +
+  expand_limits(x=c(0,0.6)) +
+  xlab('Prevalence of CAP resistance (blue=true, red=test positive, adjusted)') +
+  ylab('') + theme_bw(base_size = 18) +
+  expand_limits(x=c(0,1)) +
+  scale_x_continuous(labels=scales::percent)
+pdf(file='post_sp1_amk_kan2_cap.pdf', width=10, height=8)
+multiplot(p1, p2, p3, cols=1)
+dev.off()
 
 
 # by rif status in selected drugs
@@ -502,10 +561,13 @@ for (i in 1:dim(gen4)[1]){
 gen4[,.(country,drug,prevRes,prevRes2,se,post2)]
 save(gen4, file='gen4.Rdata')
 
+
+
 druglab2 <- c('INH (2)', 'OFX (2)', 'MFX (2)', 'PZA', 'PZA (Waynes)', 'MFX')
 load('gen4.Rdata')
 gen4$country <- droplevels(gen4$country)
 gen4$country <- with(gen4, factor(country, levels = rev(sort(unique(country)))))
+rdrugs <- c('inh2','ofx2', 'mfx2', 'pza', 'pza_waynes','mfx')
 
 for (i in 1:length(rdrugs)){
   sel <- gen4$drug == rdrugs[i]
@@ -517,11 +579,41 @@ for (i in 1:length(rdrugs)){
     geom_segment(aes(x=post2.lo, xend=post2.hi, y=country, yend=country), colour=I('red'), size=I(3)) +
     xlab(paste('Prevalence of ', druglab2[i], ' resistance (blue=true, red=test positive, adjusted)', sep='')) +
     ylab('') + theme_bw(base_size = 18) +
+    expand_limits(x=c(0,1)) +
     scale_x_continuous(labels=scales::percent) +
     facet_wrap(~patientGroup)
   print(p)
   dev.off()
 }
+
+p1 <-  ggplot(data=gen4[gen4$drug=='ofx2']) +
+  geom_point(aes(prevRes2, country), shape=I('|'), size=I(8), colour=I('lightblue')) +
+  geom_segment(aes(x=prevRes2.lo, xend=prevRes2.hi, y=country, yend=country), colour=I('lightblue'), size=I(6)) +
+  geom_point(aes(post2, country), shape=I('|'), size=I(6), colour=I('red')) +
+  geom_segment(aes(x=post2.lo, xend=post2.hi, y=country, yend=country), colour=I('red'), size=I(3)) +
+  expand_limits(x=c(0,0.6)) +
+  xlab('Prevalence of OFX (2) resistance (blue=true, red=test positive, adjusted)') +
+  ylab('') + theme_bw(base_size = 18) +
+  expand_limits(x=c(0,1)) +
+  scale_x_continuous(labels=scales::percent) +
+  facet_wrap(~patientGroup)
+p2 <-  ggplot(data=gen4[gen4$drug=='mfx']) +
+  geom_point(aes(prevRes2, country), shape=I('|'), size=I(8), colour=I('lightblue')) +
+  geom_segment(aes(x=prevRes2.lo, xend=prevRes2.hi, y=country, yend=country), colour=I('lightblue'), size=I(6)) +
+  geom_point(aes(post2, country), shape=I('|'), size=I(6), colour=I('red')) +
+  geom_segment(aes(x=post2.lo, xend=post2.hi, y=country, yend=country), colour=I('red'), size=I(3)) +
+  expand_limits(x=c(0,0.6)) +
+  xlab('Prevalence of MFX resistance (blue=true, red=test positive, adjusted)') +
+  ylab('') + theme_bw(base_size = 18) +
+  expand_limits(x=c(0,1)) +
+  scale_x_continuous(labels=scales::percent) +
+  facet_wrap(~patientGroup)
+
+pdf(file='post_sp1_ofx2_mfx_byRif.pdf', width=10, height=8)
+multiplot(p1, p2, cols=1)
+dev.off()
+
+
 
 write.csv(res, file='resByRR.csv', row.names=F)
 
